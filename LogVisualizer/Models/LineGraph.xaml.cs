@@ -2,9 +2,7 @@
 using ScottPlot;
 using ScottPlot.DataSources;
 using ScottPlot.Plottables;
-using System.Diagnostics;
 using System.Windows.Controls;
-using System.Windows.Media;
 using Color = System.Windows.Media.Color;
 
 namespace LogVisualizer.Models
