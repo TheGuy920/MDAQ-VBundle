@@ -1,7 +1,8 @@
-﻿using System.Drawing;
-using System.Windows;
-using System.Windows.Controls;
+﻿using LogVisualizer.Models;
+using Microsoft.Win32;
 using MotecLogSerializer.LdParser;
+using System.Drawing;
+using System.Windows;
 
 namespace LogVisualizer
 {
@@ -10,23 +11,13 @@ namespace LogVisualizer
     /// </summary>
     public partial class MainWindow : Window
     {
-        const string PATH = "C:\\Users\\theguy920\\Documents\\Motec\\S1_#5264_20240921_135809.ld";
-
-        readonly Dictionary<string, (LdChan Channel, bool isShown, float[] xData)> Channels;
+        Dictionary<string, LineGraph> Channels = [];
+        string searchFilter = "";
+        bool searchOpen = false;
 
         public MainWindow()
         {
-            InitializeComponent();
-
-            var ldata = LdData.FromFile(PATH);
-            this.Channels = ldata.Channels
-                .Where(c => c.Frequency > 0)
-                .DistinctBy(c => c.Name)
-                .Select(c => (c, false, Enumerable.Range(0, c.Data.Length).Select(i => i / (float)c.Frequency).ToArray()))
-                .ToDictionary(pack => pack.c.Name);
-
-            this.SelectionBox.ItemsSource = Channels.Keys.Order();
-            this.SelectionBox.SelectionChanged += SelectionBox_SelectionChanged;
+            this.InitializeComponent();
 
             this.Graph.Plot.SetStyle(new ScottPlot.PlotStyle()
             {
@@ -36,27 +27,87 @@ namespace LogVisualizer
             });
         }
 
-        private void SelectionBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void UncheckAllButtonClick(object sender, RoutedEventArgs e)
         {
-            if (e.AddedItems.Count > 0)
-            {
-                string key = e.AddedItems[0]!.ToString()!;
-                var (channel, isShown, xData) = Channels[key];
-                if (channel != null && !isShown)
-                {
-                    this.Graph.Plot.Axes.Bottom.Min = -1;
-                    this.Graph.Plot.Axes.Bottom.Max = channel.Data.Length / channel.Frequency;
-                    this.Graph.Plot.Axes.Left.Min = -1;
-                    this.Graph.Plot.Axes.Left.Max = channel.Data.Max() + 1 ;
-                    var line = this.Graph.Plot.Add.ScatterLine(xData, channel.Data);
-                    line.LineWidth = 3;
-                    line.Color = line.Color.Lighten(0.4);
+            foreach (var (_, graph) in this.Channels)
+                graph.Uncheck();
+        }
 
-                    this.Channels[key] = (channel, true, xData);
-                }
+        private void OpenFile(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new()
+            {
+                CheckFileExists = true,
+                CheckPathExists = true,
+                Filter = "Ld files (*.ld)|*.ld",
+                Multiselect = false,
+                InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                // DefaultDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            };
+
+            if (openFileDialog.ShowDialog() != true)
+                return;
+
+            this.Channels.Clear();
+            this.Graph.Plot.Clear();
+
+            var ldata = LdData.FromFile(openFileDialog.FileName);
+            this.Channels = ldata.Channels.Where(c => c.Frequency > 0).Select(c => new LineGraph(c)).ToDictionary(lg => lg.Key);
+
+            this.ListView.Items.Clear();
+
+            foreach (var (key, graph) in this.Channels.OrderBy(_ => _.Key))
+            {
+                graph.GraphUpdated += this.Graph.Refresh;
+                this.Graph.Plot.Add.Plottable(graph.ScatterLine);
+                this.ListView.Items.Add(graph);
             }
 
+            this.Graph.Plot.XLabel("Time (s)");
+            foreach (var axes in Graph.Plot.Axes.GetAxes())
+                axes.Min = 0;
             this.Graph.Refresh();
+        }
+
+        private void TextBox_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            if (!this.searchOpen)
+            {
+                this.searchOpen = true;
+                this.searchFilter = "";
+                this.SearchBar.Text = "";
+                this.SearchBar.Foreground = System.Windows.Media.Brushes.Black;
+            }
+        }
+
+        private void TextBox_LostKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            if (this.searchOpen && this.SearchBar.Text.Length <= 0)
+                this.ClearSearch(sender, null);
+        }
+
+        private void TextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs? e)
+        {
+            if (this.searchOpen && this.ListView is not null)
+            {
+                this.searchFilter = this.SearchBar.Text;
+                foreach (var item in this.ListView.Items)
+                    if (item is LineGraph graph)
+                        graph.Visibility = graph.Key.Contains(this.searchFilter, StringComparison.InvariantCultureIgnoreCase)
+                            ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        private void ClearSearch(object sender, RoutedEventArgs? e)
+        {
+            this.searchOpen = false;
+            this.searchFilter = "";
+            this.SearchBar.Text = "Search";
+            this.SearchBar.Foreground = System.Windows.Media.Brushes.Gray;
+
+            foreach (var item in this.ListView.Items)
+                if (item is LineGraph graph)
+                    graph.Visibility = Visibility.Visible;
         }
     }
 }

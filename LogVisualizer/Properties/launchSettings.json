@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "LogVisualizer": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
