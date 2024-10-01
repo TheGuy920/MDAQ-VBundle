@@ -23,9 +23,9 @@ namespace LogVisualizer.Models
             InitializeComponent();
 
             var rand = new Random();
-            var colorR = (byte)rand.Next(255);
-            var colorG = (byte)rand.Next(255);
-            var colorB = (byte)rand.Next(255);
+            byte colorR = (byte)rand.Next(255);
+            byte colorG = (byte)rand.Next(255);
+            byte colorB = (byte)rand.Next(255);
 
             this.ColorPickerCtrl.SelectedColor = Color.FromRgb(colorR, colorG, colorB);
             this.TitleTB.Text = channel.Name + '.' + channel.MetaPtr.ToString();
@@ -78,11 +78,8 @@ namespace LogVisualizer.Models
             if (this.ScatterLine == null)
                 return;
 
-            this.ScatterLine.ScaleY = (50 * (Math.Pow(Math.E, e.NewValue/20) - 1)) / divisor;
-            if (Math.Abs(this.ScatterLine.ScaleY - 1) < 0.01)
-                this.ResetButton.IsEnabled = false;
-            else
-                this.ResetButton.IsEnabled = true;
+            this.ScatterLine.ScaleY = 50 * (Math.Pow(Math.E, e.NewValue/20) - 1) / divisor;
+            this.ResetButton.IsEnabled = Math.Abs(this.ScatterLine.ScaleY - 1) >= 0.01;
 
             this.GraphUpdated?.Invoke();
         }

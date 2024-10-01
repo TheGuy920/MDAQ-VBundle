@@ -12,8 +12,8 @@ public class LdData(LdHead head, List<LdChan> channels)
     public static LdData FromFile(string filePath)
     {
         using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-        var head = LdHead.FromFile(fileStream);
-        var channels = LdParser.ReadChannels(filePath, head.MetaPtr);
+        LdHead head = LdHead.FromFile(fileStream);
+        List<LdChan> channels = LdParser.ReadChannels(filePath, head.MetaPtr);
         return new LdData(head, channels);
     }
 
@@ -30,9 +30,9 @@ public class LdData(LdHead head, List<LdChan> channels)
             Channels[i].Write(writer, i);
         }
 
-        foreach (var channel in Channels)
+        foreach (LdChan channel in Channels)
         {
-            var convertedData = channel.ConvertData();
+            byte[] convertedData = channel.ConvertData();
             writer.Write(convertedData);
         }
 
