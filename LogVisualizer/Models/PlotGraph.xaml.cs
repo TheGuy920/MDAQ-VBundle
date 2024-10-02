@@ -30,7 +30,7 @@ public partial class PlotGraph : UserControl
             FigureBackgroundColor = ScottPlot.Color.FromColor(DColor.Transparent),
         });
 
-        this.Channels = Channels.Where(c => c.Frequency > 0).Select(c => new LineGraph(c)).ToDictionary(lg => lg.Key);
+        this.Channels = Channels.Where(c => c.Frequency > 0).Select(c => new LineGraph(c, 0.250)).ToDictionary(lg => lg.Key);
         this.OrderedChannels = this.Channels.Values.OrderBy(g => g.Key);
 
         foreach ((string key, LineGraph graph) in this.Channels.OrderBy(_ => _.Key))

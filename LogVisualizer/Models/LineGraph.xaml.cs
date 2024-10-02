@@ -2,6 +2,7 @@
 using ScottPlot;
 using ScottPlot.DataSources;
 using ScottPlot.Plottables;
+using System.Diagnostics;
 using System.Windows.Controls;
 using Color = System.Windows.Media.Color;
 
@@ -18,7 +19,7 @@ namespace LogVisualizer.Models
 
         private bool IsChecked => this.VisibilityCB.IsChecked == true;
         
-        public LineGraph(LdChan channel)
+        public LineGraph(LdChan channel, double resolution)
         {
             InitializeComponent();
 
@@ -31,7 +32,9 @@ namespace LogVisualizer.Models
             this.TitleTB.Text = channel.Name + '.' + channel.MetaPtr.ToString();
             this.Key = this.TitleTB.Text;
 
-            Coordinates[] coords = channel.Data.Select((d, i) => new Coordinates(i / (double)channel.Frequency, d)).ToArray();
+            int nth = (int)(1d / resolution);
+            int skip = channel.Frequency > nth ? channel.Frequency / nth : channel.Frequency;
+            Coordinates[] coords = channel.Data.Where((_, i) => i % skip == 0).Select((d, i) => new Coordinates(i * resolution, d)).ToArray();
             ScatterSourceCoordinatesArray data = new(coords);
             this.ScatterLine = new Scatter(data)
             {

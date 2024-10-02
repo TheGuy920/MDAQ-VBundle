@@ -2,7 +2,7 @@
   "profiles": {
     "LogVisualizer": {
       "commandName": "Project",
-      "nativeDebugging": true
+      "nativeDebugging": false
     }
   }
 }
