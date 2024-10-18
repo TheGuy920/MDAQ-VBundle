@@ -11,10 +11,40 @@
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
+    <UserControl.Resources>
+        <Style x:Key="WindowStateButton" TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#FFFF5E6D" />
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="FontFamily" Value="Cascadia Mono" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border
+                            Width="22"
+                            Background="{TemplateBinding Background}"
+                            BorderThickness="0">
+                            <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#33FFFFFF" />
+                    <Setter Property="Foreground" Value="Red" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
     <Border
         x:Name="BorderSelector"
         Grid.Row="1"
-        Padding="10"
+        Margin="5"
+        Padding="5"
         Background="#01FFFFFF"
         BorderBrush="Transparent"
         BorderThickness="3"
@@ -26,13 +56,18 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
             <Button
-                Padding="10,2"
                 HorizontalAlignment="Right"
-                BorderThickness="0"
+                VerticalAlignment="Top"
                 Click="RemoveSelf"
-                Content="X"
-                FontWeight="Bold"
-                Foreground="Red" />
+                Style="{StaticResource ResourceKey=WindowStateButton}">
+                <TextBlock
+                    Margin="0"
+                    Padding="0,0,0,1"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Center"
+                    Text="x"
+                    TextAlignment="Center" />
+            </Button>
             <data:WpfPlot x:Name="Graph" Grid.Row="1" />
         </Grid>
     </Border>

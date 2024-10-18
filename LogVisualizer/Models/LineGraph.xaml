@@ -6,14 +6,22 @@
     xmlns:local="clr-namespace:LogVisualizer.Models"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-    d:DesignWidth="150"
+    MinWidth="100"
+    HorizontalAlignment="Stretch"
+    HorizontalContentAlignment="Stretch"
     Background="#01FFFFFF"
     MouseDown="OnMouseDown"
     mc:Ignorable="d">
     <StackPanel Margin="5">
-        <DockPanel>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
             <CheckBox
                 x:Name="VisibilityCB"
+                Grid.Column="0"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Center"
                 BorderThickness="0"
@@ -22,10 +30,12 @@
                 Unchecked="IsCheckedChanged" />
             <TextBlock
                 x:Name="TitleTB"
-                Padding="5,0,35,0"
+                Grid.Column="1"
+                Padding="5,0"
                 VerticalAlignment="Center"
                 DockPanel.Dock="Left" />
             <Border
+                Grid.Column="2"
                 MaxWidth="20"
                 MaxHeight="20"
                 Margin="0"
@@ -46,7 +56,7 @@
                         ShowTabHeaders="False" />
                 </Border>
             </Border>
-        </DockPanel>
+        </Grid>
         <DockPanel>
             <Button
                 x:Name="ResetButton"
