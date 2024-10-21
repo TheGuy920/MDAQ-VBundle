@@ -279,4 +279,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             this.GraphViewer.Children.Add(graph);
         }
     }
+
+    private void ChangeLayout(object sender, RoutedEventArgs e)
+    {
+        var ls = new LayoutSelector(this.GraphViewer.Rows, this.GraphViewer.Columns);
+        ls.ShowDialog();
+
+        this.GraphViewer.Rows = ls.Row;
+        this.GraphViewer.Columns = ls.Column;
+    }
 }

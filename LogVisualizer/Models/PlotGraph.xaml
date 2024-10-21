@@ -45,7 +45,7 @@
         Grid.Row="1"
         Margin="5"
         Padding="5"
-        Background="#01FFFFFF"
+        Background="#1FFFFFFF"
         BorderBrush="Transparent"
         BorderThickness="3"
         CornerRadius="2"

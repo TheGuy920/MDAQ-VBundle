@@ -1,0 +1,78 @@
+﻿<Window
+    x:Class="LogVisualizer.LayoutSelector"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:LogVisualizer"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+    Title="LayoutSelector"
+    Background="#FF171717"
+    Foreground="WhiteSmoke"
+    SizeToContent="WidthAndHeight"
+    WindowStartupLocation="CenterScreen"
+    mc:Ignorable="d">
+    <Grid Margin="20">
+        <Grid
+            Width="400"
+            Height="200"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <xctk:ByteUpDown
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Margin="0,5"
+                    Minimum="0"
+                    Value="{Binding Row, Mode=TwoWay}" />
+                <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Margin="5"
+                    Text="Rows" />
+                <xctk:ByteUpDown
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Margin="0,5"
+                    Minimum="0"
+                    Value="{Binding Column, Mode=TwoWay}" />
+                <TextBlock
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Margin="5"
+                    Text="Columns" />
+                <Button
+                    Grid.Row="4"
+                    Grid.ColumnSpan="2"
+                    Margin="5,0"
+                    BorderThickness="0"
+                    Click="Button_Click"
+                    Content="Ok" />
+            </Grid>
+            <Grid Grid.Column="0">
+                <Border
+                    Background="Black"
+                    BorderBrush="Black"
+                    BorderThickness="5"
+                    CornerRadius="2">
+                    <Grid x:Name="RowColVisualizer" />
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

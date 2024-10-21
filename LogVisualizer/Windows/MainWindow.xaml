@@ -136,6 +136,23 @@
                     BorderThickness="0"
                     Foreground="Transparent"
                     IsEnabled="False" />
+                <MenuItem
+                    Padding="15,2,15,1"
+                    Foreground="GhostWhite"
+                    Header="View">
+                    <MenuItem
+                        Click="ChangeLayout"
+                        Foreground="Black"
+                        Header="Change Layout" />
+                </MenuItem>
+                <MenuItem
+                    Width="1"
+                    Margin="2"
+                    Padding="0"
+                    Background="Gray"
+                    BorderThickness="0"
+                    Foreground="Transparent"
+                    IsEnabled="False" />
                 <MenuItem Foreground="#1AFFFFFF" IsEnabled="False">
                     <MenuItem.Header>
                         <TextBlock
