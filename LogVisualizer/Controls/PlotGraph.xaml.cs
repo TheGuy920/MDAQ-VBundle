@@ -1,8 +1,10 @@
 ﻿using MotecLogSerializer.LdParser;
+using ScottPlot;
 using System.IO;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Color = System.Windows.Media.Color;
 using DColor = System.Drawing.Color;
 
 namespace LogVisualizer.Models;
@@ -17,14 +19,15 @@ public partial class PlotGraph : UserControl
     public readonly IEnumerable<LineGraph> OrderedChannels;
 
     private static readonly SolidColorBrush SelectedBrush = new(Color.FromArgb(0xFF, 0x00, 0x80, 0xFF));
-    private static readonly SolidColorBrush SelectedBrushBG = new(Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF));
-    private static readonly SolidColorBrush UnselectedBrush = new(Color.FromArgb(0x01, 0xFF, 0xFF, 0xFF));
+    private static readonly SolidColorBrush SelectedBrushBG = new(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF));
+    private static readonly SolidColorBrush UnselectedBrush = new(Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF));
 
     public PlotGraph(string FullFile, IEnumerable<LdChan> Channels)
     {
         InitializeComponent();
 
-        this.Graph.Plot.Title(Path.GetFileName(FullFile));
+        this.TitleTB.Text = Path.GetFileName(FullFile);
+        //this.Graph.Plot.Title(Path.GetFileName(FullFile));
         this.Graph.Plot.SetStyle(new ScottPlot.PlotStyle()
         {
             GridMajorLineColor = ScottPlot.Color.FromColor(DColor.FromArgb(50, 255, 255, 255)),
@@ -36,19 +39,16 @@ public partial class PlotGraph : UserControl
         IEnumerable<string> names = active.Select(c => c.Name);
         string fixName(LineGraph lg) => names.Count(n => n == lg.Key) > 1 ? $"{lg.Key}.{lg.MetaPtr}" : lg.Key;
 
-        this.Channels = active.Select(c => new LineGraph(c, 0.250)).ToDictionary(fixName);
+        this.Channels = active.Select(c => new LineGraph(c)).ToDictionary(fixName);
         this.OrderedChannels = this.Channels.Values.OrderBy(g => g.Key);
 
         foreach ((string key, LineGraph graph) in this.Channels.OrderBy(_ => _.Key))
         {
-            graph.GraphUpdated += this.Graph.Refresh;
-            this.Graph.Plot.Add.Plottable(graph.ScatterLine);
+            graph.GraphUpdated += () => { this.Graph.Plot.Axes.AutoScale(); this.Graph.Refresh(); };
+            this.Graph.Plot.Add.Plottable(graph.Line);
         }
 
-        this.Graph.Plot.XLabel("Time (s)");
-        foreach (ScottPlot.IAxis axes in Graph.Plot.Axes.GetAxes())
-            axes.Min = 0;
-
+        //this.Graph.Plot.XLabel("Time (s)");
         this.Graph.Refresh();
     }
 

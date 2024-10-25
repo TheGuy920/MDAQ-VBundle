@@ -5,12 +5,13 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Timers;
 using Timer = System.Timers.Timer;
+using System.Windows.Controls.Primitives;
+using System.Windows.Media;
 using System.Diagnostics;
-using System.Drawing.Printing;
-using System.Runtime.InteropServices;
-using System.Windows.Interop;
+using System.Windows.Threading;
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 
 namespace LogVisualizer;
 
@@ -18,8 +19,8 @@ namespace LogVisualizer;
 /// Interaction logic for MainWindow.xaml
 /// </summary>
 public partial class MainWindow : Window, INotifyPropertyChanged
-{  
-    public bool CanUnselectAll => this.ActiveGraph is not null && this.ActiveGraph.Channels.Values.Any(g => g.ScatterLine.IsVisible);
+{
+    public bool CanUnselectAll => this.ActiveGraph is not null && this.ActiveGraph.Channels.Values.Any(g => g.Line.IsVisible);
     public List<MenuItem> FileGraphItems => this.Files.Select(ToMenuItem).ToList();
     public bool CanUnselectGraph => this.ActiveGraph is not null;
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -44,7 +45,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             OnPropertyChanged(nameof(CanUnselectAll));
         }
     }
-    
+
     private readonly Timer ScaleCheck = new()
     {
         Interval = 100,
@@ -52,12 +53,74 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         Enabled = false,
     };
 
+    private UniformGrid ActiveView => (UniformGrid)this.TabController.SelectedContent;
+
     public MainWindow()
     {
         this.InitializeComponent();
         this._title = this.Title;
         this.ScaleCheck.Elapsed += (s, e) => this.Dispatcher.Invoke(this.CheckScale);
         this.DataContext = this;
+
+        // Set the initial view to the first tab
+        this.TabController.Items.Insert(this.TabController.Items.Count-1, this.NewTab(false));
+    }
+
+    private int counter = 0;
+    private TabItem NewTab(bool canClose = true)
+    {
+        DockPanel dockPanel = new();
+        TabItem tbi = new() { Content = new UniformGrid() { Background = System.Windows.Media.Brushes.Transparent, }, Header = dockPanel, Background = Brushes.Gray };
+        var tb = new TextBox() 
+        { 
+            Background = Brushes.Transparent, Text = "Tab " + ++counter, IsReadOnly = true, BorderBrush = Brushes.Transparent,
+            AcceptsReturn = true, IsReadOnlyCaretVisible = false, IsHitTestVisible = false, MinWidth = 10
+        };
+        void lostFocus(object _, object __)
+        {
+            tb.IsReadOnly = true;
+            tb.IsHitTestVisible = false;
+            tb.BorderBrush = Brushes.Transparent;
+            tb.Background = tb.Text.Length == 0 ? new SolidColorBrush(Color.FromArgb(0xF0, 0xFF, 0x00, 0x00)) : (Brush)Brushes.Transparent;
+            tb.Focusable = false;
+        }
+        tbi.PreviewMouseDoubleClick += (s, e) =>
+        {
+            tb.IsHitTestVisible = true;
+            tb.IsReadOnly = false;
+            tb.BorderBrush = Brushes.Cyan;
+            tb.Focusable = true;
+            Task.Run(() => this.Dispatcher.Invoke(tb.Focus));
+        };
+        tb.LostFocus += lostFocus;
+        tb.PreviewLostKeyboardFocus += lostFocus;
+        tb.TextChanged += (s, e) =>
+        {
+            if (tb.Text.Contains('\n'))
+            {
+                tb.Text = tb.Text.Replace("\r", "").Replace("\n", "");
+                lostFocus(s, e);
+            }
+        };
+        dockPanel.Children.Add(tb);
+
+        Button closeButton = new() { 
+            Content = "x", Background = Brushes.Transparent, Foreground = Brushes.Red,
+            HorizontalAlignment = HorizontalAlignment.Right, BorderBrush=Brushes.Transparent,
+            Padding=new(-5), Margin=new(10,0,0,0), Width=15,
+            FontFamily = new("Cascadia Mono"), VerticalAlignment = VerticalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Center, HorizontalContentAlignment = HorizontalAlignment.Center
+        };
+        if (canClose)
+            dockPanel.Children.Add(closeButton);
+
+        closeButton.Click += (s, e) =>
+        {
+            this.TabController.SelectedIndex -= 1;
+            this.TabController.Items.Remove(tbi);
+        };
+
+        return tbi;
     }
 
     private void MinimizeButton_Click(object sender, RoutedEventArgs e)
@@ -72,14 +135,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void CloseButton_Click(object sender, RoutedEventArgs e)
         => this.Close();
 
-    private void DockPanel_MouseDown(object sender, MouseButtonEventArgs e)
+    private void DockPanelMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton != MouseButton.Left)
             return;
 
+        this.TDock.Focus();
         this.GrapplePoint = e.GetPosition(this);
         this.ScalePoint = null;
         this.ScaleCheck.Stop();
+
         e.Handled = true;
     }
 
@@ -110,7 +175,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (this.ScalePoint is not null && Mouse.PrimaryDevice.LeftButton == MouseButtonState.Pressed)
         {
             Point p = Mouse.PrimaryDevice.GetPosition(this);
-            Debug.WriteLine(p);
+
             if (this.ScalePoint.Value.X > 0)
                 this.Width = p.X + 15;
 
@@ -124,7 +189,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         this.ActiveGraph?.UncheckAll();
         OnPropertyChanged(nameof(CanUnselectAll));
     }
-    
+
     private void UnselectAllButtonClick(object sender, RoutedEventArgs e)
     {
         this.GraphOnSelected(null);
@@ -175,7 +240,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             this.searchFilter = this.SearchBar.Text;
             foreach (LineGraph graph in this.ListView.Items.OfType<LineGraph>())
-                graph.Visibility = graph.Key.Contains(this.searchFilter, StringComparison.InvariantCultureIgnoreCase) ? Visibility.Visible : Visibility.Hidden;
+                graph.Visibility = graph.Key.Contains(this.searchFilter, StringComparison.InvariantCultureIgnoreCase) ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 
@@ -188,10 +253,16 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
         foreach (LineGraph graph in this.ListView.Items.OfType<LineGraph>())
             graph.Visibility = Visibility.Visible;
+
+        if (sender is not ToggleButton)
+            this.ToggleButtonClick(sender, null);
     }
 
     private void GraphOnSelected(PlotGraph? obj)
     {
+        if (this.ActiveGraph == obj)
+            return;
+
         foreach (PlotGraph graph in this.Graphs)
         {
             if (graph == obj)
@@ -200,7 +271,22 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         }
 
         this.ActiveGraph = obj;
-        this.ListView.ItemsSource = obj?.OrderedChannels;
+        if (obj is null) {
+            this.ListView.ItemsSource = null;
+            return;
+        }
+
+        ObservableCollection<UIElement> tmpCollection = [];
+        this.ListView.ItemsSource = tmpCollection;
+
+        Task.Run(async () =>
+        {
+            foreach(LineGraph item in obj.OrderedChannels)
+            {
+                this.Dispatcher.BeginInvoke(tmpCollection.Add, item);
+                await Task.Delay(1);
+            }
+        });
     }
 
     private void ScaleOneMouseDown(object sender, MouseButtonEventArgs e)
@@ -240,7 +326,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private void CloseAllFiles(object sender, RoutedEventArgs e)
     {
         this.Title = this._title;
-        this.GraphViewer.Children.Clear();
+        this.ActiveView?.Children.Clear();
         this.ListView.ItemsSource = null;
         this.Files.Clear();
 
@@ -250,7 +336,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     private MenuItem ToMenuItem(KeyValuePair<string, LdData> item)
     {
-        MenuItem menuItem = new() { Header = item.Key, Tag = item, HorizontalContentAlignment=HorizontalAlignment.Center, VerticalContentAlignment=VerticalAlignment.Center };
+        MenuItem menuItem = new() { Header = item.Key, Tag = item, HorizontalContentAlignment = HorizontalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center };
         menuItem.Click += this.OpenGraph;
         return menuItem;
     }
@@ -266,7 +352,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             graph.OnRemove += g =>
             {
                 this.Graphs.Remove(g);
-                this.GraphViewer.Children.Remove(g);
+                this.ActiveView.Children.Remove(g);
 
                 if (this.ActiveGraph == g)
                 {
@@ -276,16 +362,66 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             };
 
             this.Graphs.Add(graph);
-            this.GraphViewer.Children.Add(graph);
+            this.ActiveView.Children.Add(graph);
         }
     }
 
     private void ChangeLayout(object sender, RoutedEventArgs e)
     {
-        var ls = new LayoutSelector(this.GraphViewer.Rows, this.GraphViewer.Columns);
+        var ls = new LayoutSelector(this.ActiveView.Rows, this.ActiveView.Columns);
         ls.ShowDialog();
 
-        this.GraphViewer.Rows = ls.Row;
-        this.GraphViewer.Columns = ls.Column;
+        this.ActiveView.Rows = ls.Row;
+        this.ActiveView.Columns = ls.Column;
+    }
+
+    private void ToggleButtonClick(object sender, RoutedEventArgs? e)
+    {
+        if (OnlyViewEnabled.IsChecked == true)
+        {
+            OnlyViewEnabled.Foreground = Brushes.Red;
+            foreach (LineGraph graph in this.ListView.Items.OfType<LineGraph>())
+                graph.Visibility = graph.VisibilityCB.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        }
+        else if (sender is ToggleButton)
+        {
+            OnlyViewEnabled.Foreground = Brushes.Black;
+            if (this.searchOpen)
+                this.TextBoxTextChanged(sender, null);
+            else
+                this.ClearSearch(sender, null);
+        }
+    }
+
+    private void TabControlSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (sender is TabControl tabControl && tabControl.SelectedItem is TabItem tbi)
+        {
+            if (tbi == this.NewTabControl)
+            {
+                Task.Run(() => this.Dispatcher.Invoke(() =>
+                {
+                    int cnt = this.TabController.Items.Count - 1;
+                    TabItem ntb = this.NewTab();
+                    this.TabController.Items.Insert(cnt, ntb);
+                    this.TabController.SelectedItem = ntb;
+                }));
+            }
+            else
+            {
+                this.GraphOnSelected(null);
+            }
+        }
+    }
+
+    private void EnableAll(object sender, RoutedEventArgs e)
+    {
+        foreach (LineGraph graph in this.ListView.Items.OfType<LineGraph>())
+            graph.TmpEnable();
+    }
+
+    private void MenuItem_Click(object sender, RoutedEventArgs e)
+    {
+
     }
 }

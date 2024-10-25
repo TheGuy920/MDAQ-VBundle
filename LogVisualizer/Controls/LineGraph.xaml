@@ -57,7 +57,7 @@
                 </Border>
             </Border>
         </Grid>
-        <DockPanel>
+        <DockPanel Visibility="Collapsed">
             <Button
                 x:Name="ResetButton"
                 Margin="1,0,5,0"
@@ -118,7 +118,7 @@
                 IsMoveToPointEnabled="True"
                 Maximum="100"
                 Minimum="1"
-                ValueChanged="ScaleData_ValueChanged"
+                ValueChanged="ScaleDataValueChanged"
                 Value="27.46551563" />
         </DockPanel>
     </StackPanel>

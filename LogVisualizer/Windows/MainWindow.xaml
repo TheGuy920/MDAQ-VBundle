@@ -70,14 +70,14 @@
         </Grid.RowDefinitions>
 
         <DockPanel
+            x:Name="TDock"
             HorizontalAlignment="Stretch"
             Background="Transparent"
-            MouseDown="DockPanel_MouseDown">
-
+            MouseDown="DockPanelMouseDown">
             <Menu
                 Margin="5,5,0,0"
                 Padding="0"
-                Background="#FF191919"
+                Background="Transparent"
                 BorderBrush="Gray"
                 BorderThickness="0"
                 FontSize="15"
@@ -153,7 +153,11 @@
                     BorderThickness="0"
                     Foreground="Transparent"
                     IsEnabled="False" />
-                <MenuItem Foreground="#1AFFFFFF" IsEnabled="False">
+                <MenuItem
+                    Background="Transparent"
+                    Foreground="#1AFFFFFF"
+                    IsCheckable="False"
+                    IsEnabled="False">
                     <MenuItem.Header>
                         <TextBlock
                             Margin="5,0"
@@ -164,7 +168,6 @@
                     </MenuItem.Header>
                 </MenuItem>
             </Menu>
-
             <Button
                 x:Name="CloseButton"
                 Width="30"
@@ -213,12 +216,10 @@
                     Text="_"
                     TextAlignment="Center" />
             </Button>
-
         </DockPanel>
         <Border
             Grid.Row="1"
             Margin="5"
-            Background="Black"
             CornerRadius="5">
             <Grid>
                 <Grid.RowDefinitions>
@@ -230,48 +231,72 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <ScrollViewer
-                    Grid.RowSpan="2"
-                    Grid.Column="0"
-                    HorizontalScrollBarVisibility="Auto"
-                    VerticalScrollBarVisibility="Auto">
-                    <UniformGrid x:Name="GraphViewer" />
-                </ScrollViewer>
+                <Grid Grid.RowSpan="2">
+                    <TabControl
+                        x:Name="TabController"
+                        Background="Black"
+                        BorderThickness="0"
+                        SelectionChanged="TabControlSelectionChanged">
+                        <TabItem
+                            x:Name="NewTabControl"
+                            Background="Gray"
+                            Header="+ New Tab" />
+                    </TabControl>
+                </Grid>
+
                 <Grid Grid.Row="0" Grid.Column="1">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+                    <ToggleButton
+                        x:Name="OnlyViewEnabled"
+                        Grid.Column="0"
+                        VerticalAlignment="Stretch"
+                        BorderThickness="0"
+                        Click="ToggleButtonClick"
+                        Content="F"
+                        FontWeight="Black" />
+
                     <TextBox
                         x:Name="SearchBar"
+                        Grid.Column="2"
                         Padding="5,2"
                         BorderThickness="0"
-                        FontSize="14"
+                        FontSize="15.5"
                         Foreground="Gray"
                         GotKeyboardFocus="TextBox_GotKeyboardFocus"
                         LostKeyboardFocus="TextBoxLostKeyboardFocus"
                         Text="Search"
                         TextChanged="TextBoxTextChanged" />
                     <Button
-                        Grid.Column="1"
+                        Grid.Column="3"
                         Width="17"
                         Margin="0"
-                        Padding="-2"
+                        Padding="-5"
                         VerticalAlignment="Stretch"
+                        VerticalContentAlignment="Center"
                         Background="LightGray"
                         BorderThickness="0"
-                        Click="ClearSearch"
-                        Content="x"
-                        FontFamily="Cascadia Mono"
-                        FontSize="18"
-                        FontWeight="Bold"
-                        Foreground="Red" />
+                        Click="ClearSearch">
+                        <TextBlock
+                            Margin="0"
+                            Padding="2,0,2,1"
+                            VerticalAlignment="Center"
+                            FontFamily="Cascadia Mono"
+                            FontSize="20"
+                            FontWeight="Bold"
+                            Foreground="Red"
+                            Text="x" />
+                    </Button>
                 </Grid>
                 <Grid
                     Grid.Row="1"
                     Grid.Column="1"
                     Background="#19FFFFFF">
-                    <ScrollViewer MinWidth="200">
+                    <ScrollViewer MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource Self}}">
                         <xctk:Selector
                             x:Name="ListView"
                             Margin="5,10,5,5"

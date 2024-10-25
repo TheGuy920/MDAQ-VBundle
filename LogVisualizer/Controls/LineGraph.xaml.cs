@@ -2,7 +2,9 @@
 using ScottPlot;
 using ScottPlot.DataSources;
 using ScottPlot.Plottables;
+using System.Diagnostics;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using Color = System.Windows.Media.Color;
 
 namespace LogVisualizer.Models;
@@ -15,12 +17,12 @@ public partial class LineGraph : UserControl
     public readonly string Key;
     public readonly uint MetaPtr;
 
-    public Scatter ScatterLine { get; private set; }
+    public Signal Line { get; private set; }
     public event Action? GraphUpdated;
 
     private bool IsChecked => this.VisibilityCB.IsChecked == true;
-    
-    public LineGraph(LdChan channel, double resolution)
+
+    public LineGraph(LdChan channel)
     {
         InitializeComponent();
         this.Key = channel.Name;
@@ -34,25 +36,22 @@ public partial class LineGraph : UserControl
         this.MetaPtr = channel.MetaPtr;
         this.TitleTB.Text = this.Key;
 
-        int nth = (int)(1d / resolution);
-        int skip = channel.Frequency > nth ? channel.Frequency / nth : channel.Frequency;
-        Coordinates[] coords = channel.Data.Where((_, i) => i % skip == 0).Select((d, i) => new Coordinates(i * resolution, d)).ToArray();
-        ScatterSourceCoordinatesArray data = new(coords);
-        this.ScatterLine = new Scatter(data)
+        float[] dt = channel.Data;
+        var dataPoints = new SignalSourceDouble([.. dt.Select((d, i) => (double)d)], 1d / channel.Frequency);
+        this.Line = new Signal(dataPoints)
         {
             MarkerStyle = MarkerStyle.None,
             IsVisible = false,
             LineColor = new ScottPlot.Color(colorR, colorG, colorB),
             LineWidth = 3,
-            ScaleY = 1.1,
         };
 
-        this.ScatterLine.LineColor = this.ScatterLine.LineColor.Lighten(0.4);
+        this.Line.LineColor = this.Line.LineColor.Lighten(0.4);
     }
-
+    
     private void IsCheckedChanged(object? _, System.Windows.RoutedEventArgs? __)
     {
-        this.ScatterLine.IsVisible = this.IsChecked;
+        this.Line.IsVisible = this.IsChecked;
         this.GraphUpdated?.Invoke();
     }
 
@@ -69,22 +68,22 @@ public partial class LineGraph : UserControl
 
     private void SelectedColorChanged(object sender, System.Windows.RoutedPropertyChangedEventArgs<Color?> e)
     {
-        if (e.NewValue == null || this.ScatterLine == null)
+        if (e.NewValue == null || this.Line == null)
             return;
 
-        this.ScatterLine.LineColor = new ScottPlot.Color(e.NewValue.Value.R, e.NewValue.Value.G, e.NewValue.Value.B);
+        this.Line.LineColor = new ScottPlot.Color(e.NewValue.Value.R, e.NewValue.Value.G, e.NewValue.Value.B);
         this.GraphUpdated?.Invoke();
     }
 
     private static readonly double divisor = Math.Pow(Math.E, 5) - 1;
 
-    private void ScaleData_ValueChanged(object sender, System.Windows.RoutedPropertyChangedEventArgs<double> e)
+    private void ScaleDataValueChanged(object sender, System.Windows.RoutedPropertyChangedEventArgs<double> e)
     {
-        if (this.ScatterLine == null)
+        if (this.Line == null)
             return;
 
-        this.ScatterLine.ScaleY = 50 * (Math.Pow(Math.E, e.NewValue/20) - 1) / divisor;
-        this.ResetButton.IsEnabled = Math.Abs(this.ScatterLine.ScaleY - 1) >= 0.01;
+        //this.Line.ScaleY = 50 * (Math.Pow(Math.E, e.NewValue/20) - 1) / divisor;
+        //this.ResetButton.IsEnabled = Math.Abs(this.Line.ScaleY - 1) >= 0.01;
 
         this.GraphUpdated?.Invoke();
     }
@@ -92,12 +91,17 @@ public partial class LineGraph : UserControl
     private void ResetScale()
     {
         this.ScaleData.Value = 27.46551563;
-        this.ScatterLine.ScaleY = 1;
+        //this.Line.ScaleY = 1;
         this.GraphUpdated?.Invoke();
     }
 
     private void ResetButton_Click(object sender, System.Windows.RoutedEventArgs e)
     {
         this.ResetScale();
+    }
+
+    public void TmpEnable()
+    {
+        this.VisibilityCB.IsChecked = true;
     }
 }
